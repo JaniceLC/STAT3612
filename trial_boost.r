@@ -7,12 +7,70 @@ for(i in 1:length(url)) download.file(url[i], name[i])
 x_train <- read.csv("./x_train.csv", header=TRUE)
 y_train <- read.csv("./y_train.csv", header=TRUE)
 x_test <- read.csv("./x_test.csv", header=TRUE)
+
+# design *matrix* (excl. labels)
 x_train_mat <- model.matrix(~.-1, x_train[, -1])
 
+# *data.frame* of train data (incl. labels)
+train <- data.frame(x_train_mat)
+train$FlagAIB <- factor(y_train[, 2])
+
 # EDA
-corr <- cor(x_train)
+corr <- cor(x_train_mat)
 library(ggcorrplot)
-ggcorrplot(corr, colors=c("darkblue", "white", "darkred"))
+ggcorrplot(corr,type="lower", outline.col="white",
+           lab=TRUE)
+ggcorrplot(corr,type="lower", outline.col="white",
+           insig="blank", method="circle")
+
+# loading packages
+library(caret)
+library(dplyr)
+
+## optional
+## dimension reduction (pca)
+train_pca <- preProcess(select(x_train, -c(StudentID, Region)), 
+                            method=c("pca", "nzv"), thresh=0.95)
+
+# random forest (w/ ranger)
+library(ranger)
+fit_control <- trainControl(method="cv", number=10)
+rf_grid <- expand.grid(mtry=c(2, 3, 4, 5),
+                       splitrule=c("gini", "extratrees"),
+                       min.node.size=c(1, 3, 5))
+rf <- train(as.factor(FlagAIB)~., data=train, 
+            method="ranger",
+            trControl=fit_control,
+            tuneGird=rf_grid)
+
+# gradient boosted machine
+levels(train$FlagAIB) <- c("worse", "better")
+fitControl <- trainControl(method="repeatedcv",
+                           number=5,
+                           repeats=1,
+                           classProbs=TRUE,
+                           summaryFunction=twoClassSummary)
+gbm <- train(FlagAIB~., data=train,
+             method="gbm",
+             trControl=fitControl,
+             verbose=FALSE,
+             # specify which metric to optimize
+             metric="ROC")
+whichTwoPct <- tolerance(gbm$results, metric="ROC",
+                         tol=2, maximize=TRUE)
+predict(gbm, newdata=data.frame(model.matrix(~.-1, x_test[, -1])), 
+        type='prob')
+trellis.par.set(caretTheme())
+densityplot(gbm, pch="|")
+
+# support vector machine
+svm <- train(FlagAIB~., data=train,
+             method="svmRadial",
+             trControl=fitControl,
+             preProc=c("center", "scale"),
+             tuneLength=8,
+             metric="ROC")
+
 
 # boosting
 library(xgboost)
