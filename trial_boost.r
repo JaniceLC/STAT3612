@@ -15,27 +15,95 @@ train_mat <- cbind(x_train_mat, y_train[, 2])
 colnames(train_mat)[ncol(train_mat)] <- "FlagAIB"
 # data frame of train data
 train <- data.frame(x_train_mat)
-train$FlagAIB <- factor(y_train[, 2])
+train$FlagAIB <- as.factor(y_train[, 2])
+train$Gender <- as.factor(train$Gender)
+train$EdMother <- as.ordered(train$EdMother)
+train$EdFather <- as.ordered(train$EdFather)
 train_reduced <- train[sample(1:nrow(train), floor(nrow(train)/2)), ]
 
 # EDA
+# correlation plot
 corr <- cor(x_train_mat)
 library(ggcorrplot)
 ggcorrplot(corr,type="lower", outline.col="white",
            lab=TRUE)
 ggcorrplot(corr,type="lower", outline.col="white",
            insig="blank", method="circle")
+# barplot
+ggplot(train, aes(x=FlagAIB, fill=FlagAIB)) +
+  geom_bar(stat="count") +
+  geom_label(stat="count", aes(label=..count..), size=5) +
+  theme_bw()
+# barplot (gender)
+ggplot(train, aes(x=Gender, fill=Gender)) + 
+  geom_bar(stat="count") +
+  geom_label(stat="count", aes(label=..count..), size=5) +
+  theme_bw()
+ggplot(train, aes(x=Gender, fill=FlagAIB)) +
+  geom_bar(stat="count", position="dodge") +
+  geom_label(stat="count", aes(label=..count..), size=5) +
+  theme_bw()
+# barplot (edmother)
+ggplot(train, aes(x=EdMother, fill=EdMother)) +
+  geom_bar(stat="count") +
+  geom_label(stat="count", aes(label=..count..), size=5) +
+  theme_bw()
+ggplot(train, aes(x=EdMother, fill=FlagAIB)) +
+  geom_bar(stat="count", position="dodge") +
+  geom_label(stat="count", aes(label=..count..), size=5) +
+  theme_bw()
+# barplot (edfather)
+ggplot(train, aes(x=EdFather, fill=EdFather)) +
+  geom_bar(stat="count") +
+  geom_label(stat="count", aes(label=..count..), size=5) +
+  theme_bw()
+ggplot(train, aes(x=EdFather, fill=FlagAIB)) +
+  geom_bar(stat="count", position="dodge") +
+  geom_label(stat="count", aes(label=..count..), size=5) +
+  theme_bw()
+# 
+ggplot(train, aes(x=EdMother, fill=FlagAIB)) +
+  geom_bar(stat="count", position="fill") +
+  facet_grid(.~EdFather) +
+  theme_bw()
+# density (inmotif)
+p1 <- ggplot(train, aes(x=InMotif_1, fill=FlagAIB)) +
+  geom_density(alpha=0.5) +
+  theme_bw()
+p2 <- ggplot(train, aes(x=InMotif_2, fill=FlagAIB)) +
+  geom_density(alpha=0.5) +
+  theme_bw()
+p3 <- ggplot(train, aes(x=InMotif_3, fill=FlagAIB)) +
+  geom_density(alpha=0.5) +
+  theme_bw()
+grid.arrange(p1, p2, p3)
+# density (exmotif)
+p1 <- ggplot(train, aes(x=ExMotif_1, fill=FlagAIB)) +
+  geom_density(alpha=0.5) +
+  theme_bw()
+p2 <- ggplot(train, aes(x=ExMotif_2, fill=FlagAIB)) +
+  geom_density(alpha=0.5) +
+  theme_bw()
+p3 <- ggplot(train, aes(x=ExMotif_3, fill=FlagAIB)) +
+  geom_density(alpha=0.5) +
+  theme_bw()
+grid.arrange(p1, p2, p3)
+
 
 # t-sne
-cols <- c("pink", "skyblue")
+cols <- c("red", "blue")
 library(tsne)
 ecb = function(x, y){
   plot(x, t='n')
   text(x, labels=train_mat[,24], col=cols[train_mat[,24] +1])
 }
-
-tsne_res = tsne(train_mat[,1:23], epoch_callback = ecb, 
-                perplexity=50, epoch=50)
+tsne <- tsne(train_mat[1:1000,1:23], epoch_callback = ecb, 
+                perplexity=10, epoch=5)
+library(Rtsne)
+tsne <- Rtsne(train_mat[, 1:23], check_duplicates = FALSE, 
+              pca = FALSE, perplexity=20, theta=0.5, dims=2)
+plot(tsne$Y, t='n')
+text(tsne$Y, labels=train_mat[,24], col=cols[train_mat[,24] +1])
 
 # preprocessing
 library(caret)
@@ -44,21 +112,24 @@ library(dplyr)
 ## optional
 ## dimension reduction (pca)
 train_pca <- preProcess(select(x_train, -c(StudentID, Region)), 
-                            method=c("pca", "nzv"), thresh=0.95)
+                        method=c("pca", "nzv"), thresh=0.95)
 
 # random forest (w/ ranger)
-library(ranger)
-fit_control <- trainControl(method="cv", number=10)
+levels(train$FlagAIB) <- c("worse", "better")
+fit_control <- trainControl(method="cv",
+                            number=10,
+                            classProbs=TRUE,
+                            summaryFunction=twoClassSummary)
 rf_grid <- expand.grid(mtry=c(2, 3, 4, 5),
                        splitrule=c("gini", "extratrees"),
                        min.node.size=c(1, 3, 5))
-rf <- train(as.factor(FlagAIB)~., data=train, 
-            method="ranger",
+rf <- train(FlagAIB~., data=train, 
+            method="rf",
             trControl=fit_control,
-            tuneGird=rf_grid)
+            tuneGird=rf_grid,
+            metric="ROC")
 
 # gradient boosted machine
-levels(train$FlagAIB) <- c("worse", "better")
 fitControl <- trainControl(method="repeatedcv",
                            number=5,
                            repeats=1,
@@ -106,7 +177,11 @@ lgt <- train(FlagAIB~., data=train,
 trellis.par.set(caretTheme())
 densityplot(lgt, pch="|")
 
-
+# multilayer perceptron network with dropout
+nndo <- train(FlagAIB~., data=train,
+              method="mlpKerasDropout",
+              trControl=fitControl,
+              metric = "ROC")
 # boosting
 library(xgboost)
 bst <- xgboost(data=x_train_mat, label=as.matrix(y_train[,2]), 
