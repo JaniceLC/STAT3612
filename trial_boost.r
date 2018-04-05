@@ -17,9 +17,9 @@ colnames(train_mat)[ncol(train_mat)] <- "FlagAIB"
 train <- data.frame(x_train_mat)
 train$FlagAIB <- as.factor(y_train[, 2])
 train$Gender <- as.factor(train$Gender)
+# questionable
 train$EdMother <- as.ordered(train$EdMother)
 train$EdFather <- as.ordered(train$EdFather)
-train_reduced <- train[sample(1:nrow(train), floor(nrow(train)/2)), ]
 
 # EDA
 # correlation plot
@@ -61,7 +61,7 @@ ggplot(train, aes(x=EdFather, fill=FlagAIB)) +
   geom_bar(stat="count", position="dodge") +
   geom_label(stat="count", aes(label=..count..), size=5) +
   theme_bw()
-# 
+# barplot (edmother_edfather)
 ggplot(train, aes(x=EdMother, fill=FlagAIB)) +
   geom_bar(stat="count", position="fill") +
   facet_grid(.~EdFather) +
@@ -89,23 +89,22 @@ p3 <- ggplot(train, aes(x=ExMotif_3, fill=FlagAIB)) +
   theme_bw()
 grid.arrange(p1, p2, p3)
 
-
 # t-sne
-cols <- c("red", "blue")
-library(tsne)
-ecb = function(x, y){
-  plot(x, t='n')
-  text(x, labels=train_mat[,24], col=cols[train_mat[,24] +1])
-}
-tsne <- tsne(train_mat[1:1000,1:23], epoch_callback = ecb, 
-                perplexity=10, epoch=5)
-library(Rtsne)
-tsne <- Rtsne(train_mat[, 1:23], check_duplicates = FALSE, 
-              pca = FALSE, perplexity=20, theta=0.5, dims=2)
-plot(tsne$Y, t='n')
-text(tsne$Y, labels=train_mat[,24], col=cols[train_mat[,24] +1])
+# cols <- c("red", "blue")
+# library(tsne)
+# ecb = function(x, y){
+#   plot(x, t='n')
+#   text(x, labels=train_mat[,24], col=cols[train_mat[,24] +1])
+# }
+# tsne <- tsne(train_mat[1:1000,1:23], epoch_callback = ecb, 
+#                 perplexity=10, epoch=5)
+# library(Rtsne)
+# tsne <- Rtsne(train_mat[, 1:23], check_duplicates = FALSE, 
+#               pca = FALSE, perplexity=20, theta=0.5, dims=2)
+# plot(tsne$Y, t='n')
+# text(tsne$Y, labels=train_mat[,24], col=cols[train_mat[,24] +1])
 
-# preprocessing
+# loading packages
 library(caret)
 library(dplyr)
 
@@ -114,15 +113,17 @@ library(dplyr)
 train_pca <- preProcess(select(x_train, -c(StudentID, Region)), 
                         method=c("pca", "nzv"), thresh=0.95)
 
-# random forest (w/ ranger)
+# random forest
+# caret demands variables for factor
 levels(train$FlagAIB) <- c("worse", "better")
-fit_control <- trainControl(method="cv",
-                            number=10,
-                            classProbs=TRUE,
-                            summaryFunction=twoClassSummary)
-rf_grid <- expand.grid(mtry=c(2, 3, 4, 5),
-                       splitrule=c("gini", "extratrees"),
-                       min.node.size=c(1, 3, 5))
+fitControl <- trainControl(method="repeatedcv",
+                           number=10,
+                           repeats=1,
+                           classProbs=TRUE,
+                           summaryFunction=twoClassSummary)
+# rf_grid <- expand.grid(mtry=c(2, 3, 4, 5),
+#                       splitrule=c("gini", "extratrees"),
+#                       min.node.size=c(1, 3, 5))
 rf <- train(FlagAIB~., data=train, 
             method="rf",
             trControl=fit_control,
@@ -130,11 +131,6 @@ rf <- train(FlagAIB~., data=train,
             metric="ROC")
 
 # gradient boosted machine
-fitControl <- trainControl(method="repeatedcv",
-                           number=5,
-                           repeats=1,
-                           classProbs=TRUE,
-                           summaryFunction=twoClassSummary)
 gbm <- train(FlagAIB~., data=train,
              method="gbm",
              trControl=fitControl,
@@ -199,3 +195,56 @@ plot(roc_logit, legacy.axes=TRUE)
 lines(1-roc_logit$specificities, roc_logit$thresholds, lty=2)
 legend("bottomright", legend=c(paste("Logistic AUC ", round(roc_logit$auc, 4), sep=""),
                                "Threshold"), col=1, lty=1:2)
+
+# neural network
+model_keras <- keras_model_sequential()
+model_keras %>%
+  layer_dense(units=20, kernel_initializer="uniform", activation="relu",
+    input_shape=ncol(train)-1) %>%
+  layer_dropout(rate=0.1) %>%
+  layer_dense(units=16, kernel_initializer="uniform", activation="relu") %>%
+  layer_dropout(rate=0.2) %>%
+  layer_dense(units=16, kernel_initializer="uniform", activation="tanh") %>%
+  layer_dropout(rate=0.1) %>%
+  layer_dense(units=1, kernel_initializer="uniform", activation="sigmoid") %>%
+  compile(
+    optimizer="adam",
+    loss="binary_crossentropy",
+    metrics=c("accuracy"))
+history <- fit(
+  object=model_keras,
+  x=as.matrix(train[, -ncol(train)]),
+  y=y_train$FlagAIB,
+  batch_size=50,
+  epochs=30,
+  validation_split=0.3
+)
+print(history)
+plot(history)
+y_hat <- predict_proba(object=model_keras, x=as.matrix(train[, -ncol(train)])) %>% as.vector()
+roc(y_train[,2], y_hat)$auc
+
+# interpretation
+library(lime)
+model_type.keras.models.Sequential <- function(x, ...){
+  "classification"
+}
+predict_model.keras.models.Sequential <- function(x, newdata, type, ...){
+  pred <- predict_proba(object=x, x=as.matrix(newdata))
+  data.frame(Yes=pred, No=1-pred)
+}
+predict_model(x=model_keras, newdata=train[, -ncol(train)], type="raw") %>%
+  tibble::as.tibble()
+explainer <- lime(
+  x=train[, -ncol(train)],
+  model=model_keras,
+  bin_continuous=FALSE
+)
+explanation <- lime::explain(
+  train[1:10, -ncol(train)],
+  explainer=explainer,
+  n_labels=1,
+  n_features=4,
+  kernel_width=0.5
+)
+plot_features(explanation)
