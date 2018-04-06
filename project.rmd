@@ -1,0 +1,252 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+# import dataset
+url <- c("http://www.statsoft.org/wp-content/uploads/2018Stat3612/Project/x_train.csv", 
+         "http://www.statsoft.org/wp-content/uploads/2018Stat3612/Project/y_train.csv", 
+         "http://www.statsoft.org/wp-content/uploads/2018Stat3612/Project/x_test.csv")
+x_train <- read.csv(url[1], header=TRUE, row.names=1)
+y_train <- read.csv(url[2], header=TRUE, row.names=1)
+x_submit <- read.csv(url[3], header=TRUE, row.names=1)
+```
+
+```{r}
+# check data types
+str(x_train)
+str(y_train)
+```
+```{r}
+# recast data types
+x_train$Gender <- as.factor(x_train$Gender)
+x_train$Region <- as.factor(x_train$Region)
+x_train$NumBook <- as.numeric(x_train$NumBook)
+x_train$NumDevice <- as.numeric(x_train$NumDevice)
+y_train$FlagAIB <- as.factor(y_train$FlagAIB)
+levels(y_train$FlagAIB) <- c("above", "below")
+# complete train data
+yx_train <- cbind(y_train, x_train)
+```
+
+```{r}
+# dummy/binary coding
+# recipe can be recreated on test data
+library(recipes)
+rec_dummy <- recipe(~., data=x_train) %>% 
+  step_dummy(Gender, Region) %>% prep(training=x_train)
+x_train_bin <- bake(rec_dummy, newdata=x_train) %>% as.data.frame()
+
+yx_train_bin <- cbind(y_train, x_train_bin)
+# library(dummies)
+# x_train_bin <- dummy.data.frame(x_train, c("Gender", "Region"), sep="_")
+# x_train_bin$Gender_2 <- NULL
+# x_train_bin$Region_USA <- NULL
+```
+## Logistic Regression (elastic net)
+```{r}
+lgt <- glm(FlagAIB~., data=yx_train_bin, family="binomial")
+summary(lgt)
+```
+`InMotif_2`, `EdMother` and `Region_USA` are not significant. We remove these predictors here.
+```{r}
+yx_train_bin_selected <- yx_train_bin %>% select(-c(InMotif_2, EdMother, Region_USA)) %>% data.frame()
+lgt <- glm(FlagAIB~., data=yx_train_bin_selected, family="binomial")
+summary(lgt)
+```
+Now all covariates' effects are significant under 5% level.
+
+```{r}
+library(caret)
+index <- createDataPartition(y_train$FlagAIB, p=0.7)
+yx_test_bin_selected <- yx_train_bin_selected[-index$Resample1,]
+yx_train_bin_selected <- yx_train_bin_selected[index$Resample1,]
+
+yx_test_bin <- yx_train_bin[-index$Resample1,]
+yx_train_bin <- yx_train_bin[index$Resample1,]
+```
+
+```{r}
+library(pROC)
+lgt_pred <- predict(lgt, newdata=yx_test_bin_selected[, -1])
+lgt_auc <- roc(yx_test_bin_selected[, 1], lgt_pred)$auc
+lgt_auc
+```
+`glmnet`
+```{r}
+library(glmnet)
+fitControl <- trainControl(method="cv",
+                           number=5,
+                           classProbs=TRUE,
+                           savePredictions=TRUE,
+                           summaryFunction=twoClassSummary)
+lgtnet <- train(FlagAIB~., data=yx_train_bin_selected,
+             method="glmnet",
+             metric="ROC",
+             # 5x5 grid for alpha and lambda
+             tuneLength=5,
+             #tuneGrid=lgtGrid,
+             trControl=fitControl)
+densityplot(lgtnet, pch="|")
+lgtnet_pred <- predict(lgtnet, newdata=yx_test_bin_selected[, -1], type="prob")
+lgtnet_auc <- roc(yx_test_bin_selected[, 1], lgtnet_pred[, 1])$auc
+lgtnet_auc
+```
+No change in AUC compared to benchmark.
+
+```{r}
+# extreme gradient boosting
+library(xgboost)
+# library(plyr)
+xgb <- train(FlagAIB~., data=yx_train_bin_selected,
+             method="xgbTree",
+             trControl=fitControl,
+             preProc=c("center", "scale"),
+             tuneLength=3,
+             metric="ROC")
+xgb_pred <- predict(xgb, newdata=yx_test_bin_selected[, -1], type="prob")
+xgb_auc <- roc(yx_test_bin_selected[, 1], xgb_pred[, 1])$auc
+xgb_auc
+```
+```{r}
+# flexible discriminant analysis
+library(earth)
+library(mda)
+fda <- train(FlagAIB~., data=yx_train_bin_selected,
+             method="fda",
+             trControl=fitControl,
+             #preProc=c("center", "scale"),
+             tuneLength=3,
+             metric="ROC")
+fda_pred <- predict(fda, newdata=yx_test_bin_selected[, -1], type="prob")
+fda_auc <- roc(yx_test_bin_selected[, 1], fda_pred[, 1])$auc
+fda_auc
+```
+```{r}
+# bagged flexible discriminant analysis
+# aborted
+library(mda)
+library(earth)
+fdabag <- train(FlagAIB~., data=yx_train_bin_selected,
+             method="bagFDA",
+             trControl=trainControl(method="None", classProbs=TRUE, summaryFunction=twoClassSummary),
+             #preProc=c("center", "scale"),
+             #tuneLength=3,
+             metric="ROC")
+fdabag <- bagFDA(FlagAIB~., data=yx_train_bin_selected)
+fdabag_pred <- predict(fdabag, newdata=yx_test_bin_selected[, -1], type="prob")
+fdabag_auc <- roc(yx_test_bin_selected$FlagAIB, fdabag_pred[, 1])
+fdabag_auc
+```
+
+```{r}
+# bagged flexible discriminant analysis
+# aborted
+library(mda)
+mda <- train(FlagAIB~., data=yx_train_bin_selected,
+             method="mda",
+             trControl=trainControl(method="None", classProbs=TRUE, summaryFunction=twoClassSummary),
+             #preProc=c("center", "scale"),
+             #tuneLength=3,
+             metric="ROC")
+mda_pred <- predict(mda, newdata=yx_test_bin_selected[, -1], type="prob")
+mda_auc <- roc(yx_test_bin_selected[, 1], mda_pred[, 1])$auc
+mda_auc
+```
+
+```{r}
+# neural networks with feature extraction
+library(nnet)
+net <- train(FlagAIB~., data=yx_train_bin_selected,
+             method="pcaNNet",
+             trControl=fitControl,
+             preProc=c("center", "scale"),
+             tuneLength=3,
+             metric="ROC")
+net_pred <- predict(net, newdata=yx_test_bin_selected[, -1], type="prob")
+net_auc <- roc(yx_test_bin_selected[, 1], net_pred[, 1])$auc
+net_auc
+```
+
+```{r}
+# random forest
+library(ranger)
+library(e1071)
+# library(dplyr)
+rf <- train(FlagAIB~., data=yx_train_bin_selected,
+             method="ranger",
+             trControl=trainControl(classProbs=TRUE, summaryFunction=twoClassSummary),
+             #preProc=c("center", "scale"),
+             #tuneLength=1,
+             mtry=3,
+             metric="ROC")
+rf_pred <- predict(rf, newdata=yx_test_bin_selected[, -1], type="prob")
+rf_auc <- roc(yx_test_bin_selected[, 1], rf_pred[, 1])$auc
+rf_auc
+```
+
+```{r}
+# adaboost classification trees
+library(fastAdaboost)
+ada <- train(FlagAIB~., data=yx_train_bin_selected,
+             method="adaboost",
+             trControl=trainControl(classProbs=TRUE, summaryFunction=twoClassSummary),
+             #preProc=c("center", "scale"),
+             #tuneLength=3,
+             metric="ROC")
+ada_pred <- predict(ada, newdata=yx_test_bin_selected[, -1], type="prob")
+ada_auc <- roc(yx_test_bin_selected[, 1], ada_pred[, 1])$auc
+ada_auc
+```
+
+```{r}
+# penalized discriminant analysis
+library(mda)
+pda <- train(FlagAIB~., data=yx_train_bin_selected,
+             method="pda",
+             trControl=fitControl,
+             #preProc=c("center", "scale"),
+             #tuneLength=3,
+             metric="ROC")
+pda_pred <- predict(pda, newdata=yx_test_bin_selected[, -1], type="prob")
+pda_auc <- roc(yx_test_bin_selected[, 1], pda_pred[, 1])$auc
+pda_auc
+```
+
+```{r}
+library(xgboost)
+bst <- xgboost(data=as.matrix(yx_train_bin_selected[,-1]), label=as.numeric(yx_train_bin_selected[,1])-1,
+               max.depth=6, eta=0.16, nthread=3, nround=75, objective="binary:logistic")
+bst_pred <- predict(bst, as.matrix(yx_test_bin_selected[,-1]))
+bst_auc <- roc(yx_test_bin_selected[, 1], bst_pred)$auc
+bst_auc
+x_submit <- bake(rec_dummy, newdata=x_submit) %>% as.data.frame()
+x_submit_selected <- x_submit %>% select(-c(InMotif_2, EdMother, Region_USA)) %>% data.frame()
+bst_submit_pred <- predict(bst, as.matrix(x_submit_selected))
+df <- data.frame(StudentID=1:nrow(x_submit_selected),FlagAIB=bst_submit_pred)
+write.csv(df, "y_test_xgboost.csv", row.names=FALSE)
+```
+
+```{r}
+library(xgboost)
+bst2 <- xgboost(data=as.matrix(yx_train_bin[,-1]), label=as.numeric(yx_train_bin[,1])-1,
+               max.depth=6, eta=0.165, nthread=2, nround=75, objective="binary:logistic")
+bst2_pred <- predict(bst2, as.matrix(yx_test_bin[,-1]))
+bst2_auc <- roc(yx_test_bin[, 1], bst2_pred)$auc
+bst2_auc
+x_submit <- bake(rec_dummy, newdata=x_submit) %>% as.data.frame()
+bst2_submit_pred <- predict(bst2, as.matrix(x_submit))
+df <- data.frame(StudentID=1:nrow(x_submit),FlagAIB=bst2_submit_pred)
+write.csv(df, "y_test_xgboost2.csv", row.names=FALSE)
+```
+
+
+```{r}
+alg_auc = data.frame(alg=c("lgt", "lgtnet", "xgb", "fda", "net", "rf", "ada"),
+                     auc=c(lgt_auc, lgtnet_auc, xgb_auc, fda_auc, net_auc, rf_auc, ada_auc))
+library(ggplot2)
+ggplot(data=alg_auc, aes(x=alg, y=auc)) +
+  geom_bar(stat="identity", aes(fill=alg)) +
+  coord_flip()
+```
