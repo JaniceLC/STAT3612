@@ -7,5 +7,5 @@ STAT3612 Data Mining Group Project
 |Submission|1|
 |---|---|
 |AUC|0.8707|
-|---|---|
 |Max AUC|0.8707|
+|Rank|2|
