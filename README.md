@@ -9,3 +9,4 @@ STAT3612 Data Mining Group Project
 |AUC|0.8707|NA|
 |Max AUC|0.8707|0.8707|
 |Rank|2|2|
+* NA was due to an incorrect submission of html file
