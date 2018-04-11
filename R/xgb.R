@@ -9,6 +9,8 @@ library(xgboost)
 library(Matrix)
 library(ggplot2)
 
+set.seed(2018)
+
 # construct DMatrix for XGBoost (optional)
 # dtrain <- xgb.DMatrix(data=sparse.model.matrix(~.-1, data=train.x.bin),
 #                       label=as.numeric(train.y$FlagAIB)-1)
@@ -91,8 +93,8 @@ paramGrid <- expand.grid(
   max_depth=c(6),
   subsample=0.55,
   colsample_bytree=0.7, # randomForest
-  rate_drop=c(0.8),
-  skip_drop=c(0.35)
+  rate_drop=c(0.85),
+  skip_drop=c(0.2)
 )
 best_param <- list()
 best_auc <- 0
@@ -113,8 +115,8 @@ for (i in 1:nrow(paramGrid)){
     eval_metric="auc",
     objective="binary:logistic",
     booster="gbtree",
-    sample_type="uniform",
-    normalize_type="tree"
+    sample_type=c("uniform"),
+    normalize_type=c("forest")
   )
   current_round <- history$best_iteration
   current_auc <- history$evaluation_log$test_auc_mean[current_round]
@@ -126,3 +128,5 @@ for (i in 1:nrow(paramGrid)){
   # make verbose
   print(paste("Round ", i, " completed", sep=""))
 }
+
+# tuned DART performs *slightly* better
