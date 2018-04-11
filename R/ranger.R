@@ -42,3 +42,9 @@ rf <- train(
 # plot variable importance
 ggplot(varImp(rf, scale = FALSE), main = "randomForest") +
   ggtitle("Ranger")
+
+# predict
+pred.y <- predict(rf, newdata=test.x.bin, type="prob")[, 2]
+test.y <- data.frame(StudentID=1:length(pred.y),
+                     FlagAIB=pred.y)
+write.csv(test.y, file="~/y_test.csv", row.names=FALSE)
