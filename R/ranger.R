@@ -4,10 +4,12 @@
 
 if(!require(caret)) install.packages("caret")
 if(!require(ranger)) install.packages("ranger")
+if(!require(e1071)) install.packages("e1071")
 if(!require(ggplot2)) install.packages("ggplot2")
 
 library(caret)
 library(ranger)
+library(e1071)
 library(ggplot2)
 
 # set tuning parameters

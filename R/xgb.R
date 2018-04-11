@@ -9,8 +9,6 @@ library(xgboost)
 library(Matrix)
 library(ggplot2)
 
-set.seed(2018)
-
 # construct DMatrix for XGBoost (optional)
 # dtrain <- xgb.DMatrix(data=sparse.model.matrix(~.-1, data=train.x.bin),
 #                       label=as.numeric(train.y$FlagAIB)-1)
@@ -130,3 +128,14 @@ for (i in 1:nrow(paramGrid)){
 }
 
 # tuned DART performs *slightly* better
+
+# for usage of caret
+xgbGrid <- expand.grid(
+  eta=c(0.02),
+  max_depth=c(6),
+  subsample=0.55,
+  colsample_bytree=0.7, # randomForest
+  gamma=0,
+  min_child_weight=1,
+  nrounds=670
+)
