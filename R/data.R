@@ -2,6 +2,10 @@
 # Data manipulation #
 #####################
 
+if(!require(dplyr)) install.packages("dplyr")
+if(!require(recipes)) install.packages("recipes")
+
+
 library(dplyr)
 library(recipes)
 
