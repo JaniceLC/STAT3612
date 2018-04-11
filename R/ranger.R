@@ -4,13 +4,15 @@
 
 if(!require(caret)) install.packages("caret")
 if(!require(ranger)) install.packages("ranger")
+if(!require(ggplot2)) install.packages("ggplot2")
 
 library(caret)
 library(ranger)
+library(ggplot2)
 
 # set tuning parameters
 rfGrid <- expand.grid(
-  mtry=c(6, 7, 8),
+  mtry=c(8),
   splitrule=c("gini"),
   min.node.size=c(3)
 )
@@ -37,4 +39,6 @@ rf <- train(
   metric="ROC"
 )
 
-plot(varImp(rf, scale = FALSE), main = "randomForest")
+# plot variable importance
+ggplot(varImp(rf, scale = FALSE), main = "randomForest") +
+  ggtitle("Ranger")
