@@ -25,9 +25,9 @@ fitControl <- trainControl(
 # set tuning parameters
 catGrid <- expand.grid(
   depth=6,
-  learning_rate=0.05, #lower
-  iterations=700, #higher
-  l2_leaf_reg=0.04, #higher
+  learning_rate=0.02, #lower
+  iterations=710, #higher
+  l2_leaf_reg=0.09, #higher
   rsm = 0.9,
   border_count=64
 )
