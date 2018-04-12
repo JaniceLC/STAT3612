@@ -26,6 +26,8 @@ train.x$EdMother <- as.ordered(train.x$EdMother)
 train.x$EdFather <- as.ordered(train.x$EdFather)
 train.y$FlagAIB <- as.factor(train.y$FlagAIB)
 
+train.x.fd = train.x
+train.x.fd$M_d_F = abs(as.numeric(train.x.fd$EdFather) - as.numeric(train.x.fd$EdMother))
 # complete train data
 train <- cbind(train.y, train.x)
 
@@ -60,8 +62,7 @@ rcp.fm <-
 
 
 #recipe1 to add abs(EdFather-Edmather)
-train.x.fd = train.x
-train.x.fd$M_d_F = abs(as.numeric(train.x.fd$EdFather) - as.numeric(train.x.fd$EdMother))
+
 rcp.fd = recipe(~., data=train.x.fd) %>%
   step_ordinalscore(EdMother, EdFather) %>%
   step_center(all_numeric()) %>%
@@ -88,6 +89,6 @@ test.x.fm.bin <- bake(rcp.fm, newdata = test.x) %>% as.data.frame()
 test.x.fd = test.x
 test.x.fd$M_d_F = abs(as.numeric(test.x.fd$EdFather) - as.numeric(test.x.fd$EdMother))
 test.x.fd.bin = bake(rcp.fd, newdata =test.x.fd) %>% as.data.frame()
-test.fd.bin = cbind(FlagAIB=test.y$FlagAIB, test.x.fd.bin)
+
 
 
