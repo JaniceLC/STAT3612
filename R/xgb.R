@@ -81,6 +81,7 @@ xgb.ggplot.importance(imp.matrix.fm)
 xgb.plot.importance(imp.matrix.fm, main ="xgBoost_fm_Importance")
 #best_auc1 =0.8800068, best_param1 eta = 0.01, max_depth= 6, subsample= 0.6, colsample_bytree=0.6
 #best_auc2 = 0.8807268, best_param1 eta = 0.015, max_depth= 6, subsample= 0.5, colsample_bytree=0.7
+#best_auc2 = 0.8804996, best_param1 eta = 0.015, max_depth= 6, subsample= 0.6, colsample_bytree=0.7
 
 # ---last used tuned parameters---
 # param <- list(
