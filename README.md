@@ -6,7 +6,7 @@ STAT3612 Data Mining Group Project
 ## Performances
 |Submission|1|2|
 |---|---|---|
-|AUC|0.8707|NA|
-|Max AUC|0.8707|0.8707|
+|AUC|0.8707|0.8731|
+|Max AUC|0.8707|0.8731|
 |Rank|2|6|
 * NA was due to an incorrect submission of html file
