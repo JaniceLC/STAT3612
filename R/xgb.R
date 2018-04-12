@@ -16,10 +16,10 @@ library(ggplot2)
 # parameter tuning
 # package Caret also provides a systematic framework for tuning
 paramGrid <- expand.grid(
-  eta=c(0.02),
+  eta=c(0.01, 0.02, 0.03),
   max_depth=c(6),
-  subsample=0.55,
-  colsample_bytree=0.7 # randomForest
+  subsample=0.5,
+  colsample_bytree=c(0.6, 0.7, 0.8) # randomForest
 )
 best_param <- list()
 best_auc <- 0
@@ -28,7 +28,7 @@ for (i in 1:nrow(paramGrid)){
   current_param <- as.list(paramGrid[i,])
   history <- xgb.cv(
     data=as.matrix(train.x.bin),
-    label=as.matrix(train.y$FlagAIB),
+    label=as.numeric(train.y$FlagAIB)-1,
     params=current_param,
     nround=1000,
     verbose=0,
@@ -103,7 +103,7 @@ for (i in 1:nrow(paramGrid)){
     data=as.matrix(train.x.bin),
     label=as.matrix(train.y$FlagAIB),
     params=current_param,
-    nround=1000,
+    nround=800,
     verbose=0,
     nfold=5,
     # ---XGBoost documentation---
@@ -137,5 +137,5 @@ xgbGrid <- expand.grid(
   colsample_bytree=0.7, # randomForest
   gamma=0,
   min_child_weight=1,
-  nrounds=670
+  nrounds=550
 )

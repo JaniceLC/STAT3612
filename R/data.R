@@ -39,11 +39,12 @@ train <- cbind(train.y, train.x)
 # dummy/binary coding
 # recipe can be recreated on test data
 library(recipes)
-rcp <- recipe(~., data=train.x) %>% 
+rcp <- recipe(~., data=train.x) %>%
+  step_ordinalscore(EdMother, EdFather) %>%
   step_center(all_numeric()) %>%
   step_scale(all_numeric()) %>%
-  #step_pca(all_numeric(), threshold=0.9) %>%
-  step_dummy(Gender, Region, EdFather, EdMother) %>%
+  # step_pca(all_numeric(), threshold=0.9) %>%
+  step_dummy(Gender, Region) %>%
   prep(training=train.x)
 
 # bake train set

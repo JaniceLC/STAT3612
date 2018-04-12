@@ -56,7 +56,7 @@ ggplot(train, aes(x=NumDevice, fill=EdFather)) +
   theme_bw()
 
 # correlation plot
-corr <- train %>% select(-c(FlagAIB, Gender, EdMother, EdFather, Region)) %>% cor()
+corr <- train.x.bin %>% select(-starts_with("Region")) %>% cor()
 p1 <- ggcorrplot(corr, type="lower", outline.col="white", lab=TRUE)
 p2 <- ggcorrplot(corr, type="lower", outline.col="white",
                  insig="blank", method="circle")
