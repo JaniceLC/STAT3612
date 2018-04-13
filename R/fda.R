@@ -9,7 +9,7 @@ library(earth)
 library(mda)
 
 fdaGrid <- expand.grid(
-  nprune=30,
+  nprune=c(50),
   degree=2
 )
 

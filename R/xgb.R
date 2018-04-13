@@ -16,10 +16,10 @@ library(ggplot2)
 # parameter tuning
 # package Caret also provides a systematic framework for tuning
 paramGrid <- expand.grid(
-  eta=c0.015,
+  eta=c(0.01, 0.015, 0.02),
   max_depth=6,
-  subsample=c(0.5, 0.4, 0.45),
-  colsample_bytree=c(0.7, 0.75) # randomForest
+  subsample=c(0.5),
+  colsample_bytree=c(0.7) # randomForest
 )
 best_param <- list()
 best_auc <- 0
@@ -27,10 +27,10 @@ best_round <- 0
 for (i in 1:nrow(paramGrid)){
   current_param <- as.list(paramGrid[i,])
   history <- xgb.cv(
-    data=as.matrix(train.x.fm.bin),
+    data=as.matrix(train.x.bin),
     label=as.numeric(train.y$FlagAIB)-1,
     params=current_param,
-    nround=1000,
+    nround=2000,
     verbose=0,
     nfold=5,
     # ---XGBoost documentation---
@@ -51,8 +51,8 @@ for (i in 1:nrow(paramGrid)){
   # make verbose
   print(paste("Round ", i, " completed", sep=""))
 }
-xgb.fm <- xgboost(
-  data=as.matrix(train.x.fm.bin),
+xgb <- xgboost(
+  data=as.matrix(train.x.bin),
   label=as.matrix(train.y$FlagAIB), 
   params=best_param,
   nround=best_round,
@@ -63,22 +63,10 @@ xgb.fm <- xgboost(
   booster="gbtree"
 )
 
-# train model based on tuned result
-param <- best_param
-xgb.fm <- xgboost(
-  data=as.matrix(train.x.fm.bin),
-  label=as.matrix(train.y$FlagAIB), 
-  params=best_param,
-  nround=best_round,
-  verbose=0,
-  nfold=5,
-  eval_metric="auc",
-  objective="binary:logistic",
-  booster="gbtree"
-)
-imp.matrix.fm <- xgb.importance(feature_names=colnames(train.x.fm.bin), model=xgb.fm)
-xgb.ggplot.importance(imp.matrix.fm)
-xgb.plot.importance(imp.matrix.fm, main ="xgBoost_fm_Importance")
+imp.matrix <- xgb.importance(feature_names=colnames(train.x.bin), model=xgb)
+# xgb.ggplot.importance(imp.matrix)
+xgb.plot.importance(imp.matrix, main ="xgBoost Importance")
+
 #best_auc1 =0.8800068, best_param1 eta = 0.01, max_depth= 6, subsample= 0.6, colsample_bytree=0.6
 #best_auc2 = 0.8807268, best_param1 eta = 0.015, max_depth= 6, subsample= 0.5, colsample_bytree=0.7
 #best_auc2 = 0.8804996, best_param1 eta = 0.015, max_depth= 6, subsample= 0.6, colsample_bytree=0.7
@@ -148,11 +136,11 @@ for (i in 1:nrow(paramGrid)){
 
 # for usage of caret
 xgbGrid <- expand.grid(
-  eta=c(0.02),
+  eta=c(0.015),
   max_depth=c(6),
-  subsample=0.55,
+  subsample=0.5,
   colsample_bytree=0.7, # randomForest
   gamma=0,
   min_child_weight=1,
-  nrounds=550
+  nrounds=650
 )

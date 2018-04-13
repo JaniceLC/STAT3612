@@ -26,8 +26,6 @@ train.x$EdMother <- as.ordered(train.x$EdMother)
 train.x$EdFather <- as.ordered(train.x$EdFather)
 train.y$FlagAIB <- as.factor(train.y$FlagAIB)
 
-train.x.fd = train.x
-train.x.fd$M_d_F = abs(as.numeric(train.x.fd$EdFather) - as.numeric(train.x.fd$EdMother))
 # complete train data
 train <- cbind(train.y, train.x)
 
@@ -43,17 +41,9 @@ train <- cbind(train.y, train.x)
 library(recipes)
 rcp <- recipe(~., data=train.x) %>%
   step_ordinalscore(EdMother, EdFather) %>%
-  step_center(all_numeric()) %>%
-  step_scale(all_numeric()) %>%
-  # step_pca(all_numeric(), threshold=0.9) %>%
-  step_dummy(Gender, Region) %>%
-  prep(training=train.x)
-
-#recipe1 to add EdFather*Edmather 
-rcp.fm <- 
-  recipe(~., data=train.x) %>%
-  step_ordinalscore(EdMother, EdFather) %>% 
-  step_interact(terms = ~ EdMother:EdFather, sep = "_x_" ) %>% #interaction bewteen Edmother and Edfather
+  step_interact(terms = ~ EdMother:EdFather+
+                  Teacher_1:all_numeric()+
+                  NumBook:all_numeric(), sep = "x" ) %>%
   step_center(all_numeric()) %>%
   step_scale(all_numeric()) %>%
   # step_pca(all_numeric(), threshold=0.9) %>%
@@ -61,34 +51,14 @@ rcp.fm <-
   prep(training=train.x)
 
 
-#recipe1 to add abs(EdFather-Edmather)
 
-rcp.fd = recipe(~., data=train.x.fd) %>%
-  step_ordinalscore(EdMother, EdFather) %>%
-  step_center(all_numeric()) %>%
-  step_scale(all_numeric()) %>%
-  # step_pca(all_numeric(), threshold=0.9) %>%
-  step_dummy(Gender, Region) %>%
-  prep(training=train.x.fd)
-
-train.x.fd.bin <- bake(rcp.fd, newdata = train.x) %>% as.data.frame() 
-#rcp %>% step_interact(terms = ~ (abs(EdFather - EdMother)), sep = "_d_") #d: difference
 
 # bake train set
 train.x.bin <- bake(rcp, newdata=train.x) %>% as.data.frame()
 train.bin <- cbind(FlagAIB=train.y$FlagAIB, train.x.bin)
-train.x.fm.bin <- bake(rcp.fm, newdata = train.x) %>% as.data.frame()
-train.fm.bin <- cbind(FlagAIB=train.y$FlagAIB, train.x.fm.bin)
-train.x.fd.bin = bake(rcp.fd, newdata =train.x.fd) %>% as.data.frame()
-train.fd.bin = cbind(FlagAIB=train.y$FlagAIB, train.x.fd.bin)
+
+# drop Gender
+train.x.bin$Gender_X2 <- NULL
 
 # bake test set
 test.x.bin <- bake(rcp, newdata=test.x) %>% as.data.frame()
-test.x.fm.bin <- bake(rcp.fm, newdata = test.x) %>% as.data.frame()
-
-test.x.fd = test.x
-test.x.fd$M_d_F = abs(as.numeric(test.x.fd$EdFather) - as.numeric(test.x.fd$EdMother))
-test.x.fd.bin = bake(rcp.fd, newdata =test.x.fd) %>% as.data.frame()
-
-
-
