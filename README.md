@@ -10,3 +10,9 @@ STAT3612 Data Mining Group Project
 |Max AUC|0.8707|0.8731|
 |Rank|2|2|
 
+
+|Submission|Description|
+|---|---|
+|1|Ensemble KMselection: xgBoost+glmnet+...|
+|2|xgBoost|
+|3|Ensemble Random Forest + glmnet + xgBoost|
