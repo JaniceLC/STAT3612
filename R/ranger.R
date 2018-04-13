@@ -14,9 +14,9 @@ library(ggplot2)
 
 # set tuning parameters
 rfGrid <- expand.grid(
-  mtry=c(8),
+  mtry=8,
   splitrule=c("gini"),
-  min.node.size=c(3)
+  min.node.size= 5
 )
 
 # set validation mode

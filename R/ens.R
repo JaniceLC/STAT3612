@@ -23,18 +23,18 @@ fitControl <- trainControl(
 
 
 modelList <- list(
-  # rf <- caretModelSpec(
-  #   method="ranger",
-  #   tuneGrid=rfGrid
-  # ),
-  # xgb <- caretModelSpec(
-  #   method="xgbTree",
-  #   tuneGrid=xgbGrid
-  # ),
-  glm <- caretModelSpec(
-    method="glmnet",
-    tuneGrid=glmGrid
+  rf <- caretModelSpec(
+    method="ranger",
+    tuneGrid=rfGrid
   ),
+  xgb <- caretModelSpec(
+    method="xgbTree",
+    tuneGrid=xgbGrid
+  ),
+  # glm <- caretModelSpec(
+  #   method="glmnet",
+  #   tuneGrid=glmGrid
+  # ),
   fda <- caretModelSpec(
     method="fda",
     tuneGrid=fdaGrid
