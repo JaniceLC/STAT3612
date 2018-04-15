@@ -16,10 +16,10 @@ library(ggplot2)
 # parameter tuning
 # package Caret also provides a systematic framework for tuning
 paramGrid <- expand.grid(
-  eta=c(0.01, 0.015, 0.02),
-  max_depth=6,
-  subsample=c(0.5),
-  colsample_bytree=c(0.7) # randomForest
+  eta=0.01,
+  max_depth=5,
+  subsample=0.5,
+  colsample_bytree=0.6 # randomForest
 )
 best_param <- list()
 best_auc <- 0
@@ -136,11 +136,11 @@ for (i in 1:nrow(paramGrid)){
 
 # for usage of caret
 xgbGrid <- expand.grid(
-  eta=c(0.015),
-  max_depth=c(6),
+  eta=0.01,
+  max_depth=5,
   subsample=0.5,
-  colsample_bytree=0.7, # randomForest
+  colsample_bytree=0.6, # randomForest
   gamma=0,
   min_child_weight=1,
-  nrounds=650
+  nrounds=1000
 )

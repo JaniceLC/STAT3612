@@ -33,8 +33,8 @@ train <- cbind(train.y, train.x)
 
 # feature engineering
 # distinguish Asia and Non-Asia countries and regions
-# train.x.aug <- train.x %>% mutate(Continent=ifelse(Region %in% c("HKG", "JPN", "SGP", "TWN"), 
-#                                                "ASIA", "NASIA")) %>% as.data.frame()
+train.x <- train.x %>% mutate(Continent=ifelse(Region %in% c("HKG", "JPN", "SGP", "TWN"), 
+                                               "ASIA", "NASIA")) %>% as.data.frame()
 
 # dummy/binary coding
 # recipe can be recreated on test data
@@ -44,10 +44,11 @@ rcp <- recipe(~., data=train.x) %>%
   step_interact(terms = ~ EdMother:EdFather+
                   Teacher_1:all_numeric()+
                   NumBook:all_numeric(), sep = "x" ) %>%
-  step_center(all_numeric()) %>%
-  step_scale(all_numeric()) %>%
-  # step_pca(all_numeric(), threshold=0.9) %>%
-  step_dummy(Gender, Region) %>%
+  step_ns(all_numeric(), df=3) %>%
+  #step_center(all_numeric()) %>%
+  #step_scale(all_numeric()) %>%
+  #step_pca(all_numeric(), threshold=0.9) %>%
+  step_dummy(Gender, Region, Continent) %>%
   prep(training=train.x)
 
 
@@ -61,4 +62,8 @@ train.bin <- cbind(FlagAIB=train.y$FlagAIB, train.x.bin)
 train.x.bin$Gender_X2 <- NULL
 
 # bake test set
+test.x <- test.x %>% mutate(Continent=ifelse(Region %in% c("HKG", "JPN", "SGP", "TWN"), 
+                                               "ASIA", "NASIA")) %>% as.data.frame()
+
 test.x.bin <- bake(rcp, newdata=test.x) %>% as.data.frame()
+test.x.bin$Gender_X2 <- NULL

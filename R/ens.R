@@ -23,22 +23,22 @@ fitControl <- trainControl(
 
 
 modelList <- list(
-  rf <- caretModelSpec(
-    method="ranger",
-    tuneGrid=rfGrid
-  ),
+  # rf <- caretModelSpec(
+  #   method="ranger",
+  #   tuneGrid=rfGrid
+  # ),
   xgb <- caretModelSpec(
     method="xgbTree",
     tuneGrid=xgbGrid
   ),
-  # glm <- caretModelSpec(
-  #   method="glmnet",
-  #   tuneGrid=glmGrid
-  # ),
-  fda <- caretModelSpec(
-    method="fda",
-    tuneGrid=fdaGrid
+  glm <- caretModelSpec(
+    method="glmnet",
+    tuneGrid=glmGrid
   )
+  # fda <- caretModelSpec(
+  #   method="fda",
+  #   tuneGrid=fdaGrid
+  # )
 )
 
 # caret requires factors with valid names
@@ -72,7 +72,7 @@ summary(greedy)
 plot(greedy)
 greedier <- caretStack(
   ensembleList,
-  method="avNNet",
+  method="glm",
   metric="ROC",
   # do NOT use the train control object used above
   trControl=trainControl(
@@ -84,3 +84,9 @@ greedier <- caretStack(
   )
 )
 summary(greedier)
+# 0.880815
+
+# predict
+pred.y <- predict(greedier, newdata=test.x.bin)
+test.y <- data.frame(StudentID=1:length(pred.y), FlagAIB=pred.y)
+write.csv(test.y, file="C:/Users/taylorsu/Desktop/y_test.csv", row.names=FALSE)
