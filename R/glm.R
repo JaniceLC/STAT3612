@@ -18,8 +18,8 @@ fitControl <- trainControl(
 )
 
 glmGrid <- expand.grid(
-  alpha=0.9,
-  lambda=0
+  alpha=c(1),
+  lambda=c(0)
 )
 
 levels(train.y$FlagAIB) <- c("B", "A")

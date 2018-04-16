@@ -2,15 +2,17 @@
 # FDA #
 #######
 
+if(!require(caret)) install.packages("caret")
 if(!require(earth)) install.packages("earth")
 if(!require(mda)) install.packages("mda")
 
+library(caret)
 library(earth)
 library(mda)
 
 fdaGrid <- expand.grid(
   nprune=c(50),
-  degree=2
+  degree=c(3)
 )
 
 # set validation mode

@@ -144,3 +144,19 @@ xgbGrid <- expand.grid(
   min_child_weight=1,
   nrounds=1000
 )
+fitControl <- trainControl(
+  method="cv",
+  number=5,
+  classProbs=TRUE,
+  summaryFunction=twoClassSummary,
+  verboseIter=TRUE
+)
+xgb <- train(
+  x=train.x.bin,
+  y=train.y$FlagAIB,  
+  method="xgbTree",
+  trControl=fitControl,
+  tuneGrid=xgbGrid,
+  metric="ROC"
+)
+plot(varImp(xgb), main="XGBoost")

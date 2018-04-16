@@ -49,6 +49,7 @@ rcp <- recipe(~., data=train.x) %>%
   #step_scale(all_numeric()) %>%
   #step_pca(all_numeric(), threshold=0.9) %>%
   step_dummy(Gender, Region, Continent) %>%
+  step_interact(terms=~contains("Gender"):contains("Continent")) %>%
   prep(training=train.x)
 
 

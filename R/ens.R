@@ -34,11 +34,11 @@ modelList <- list(
   glm <- caretModelSpec(
     method="glmnet",
     tuneGrid=glmGrid
+  ),
+  fda <- caretModelSpec(
+    method="fda",
+    tuneGrid=fdaGrid
   )
-  # fda <- caretModelSpec(
-  #   method="fda",
-  #   tuneGrid=fdaGrid
-  # )
 )
 
 # caret requires factors with valid names
