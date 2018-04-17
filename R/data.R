@@ -52,19 +52,11 @@ rcp <- recipe(~., data=train.x) %>%
   step_interact(terms=~contains("Gender"):contains("Continent")) %>%
   prep(training=train.x)
 
-
-
-
 # bake train set
 train.x.bin <- bake(rcp, newdata=train.x) %>% as.data.frame()
 train.bin <- cbind(FlagAIB=train.y$FlagAIB, train.x.bin)
 
-# drop Gender
-train.x.bin$Gender_X2 <- NULL
-
 # bake test set
 test.x <- test.x %>% mutate(Continent=ifelse(Region %in% c("HKG", "JPN", "SGP", "TWN"), 
                                                "ASIA", "NASIA")) %>% as.data.frame()
-
 test.x.bin <- bake(rcp, newdata=test.x) %>% as.data.frame()
-test.x.bin$Gender_X2 <- NULL

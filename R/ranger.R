@@ -14,9 +14,9 @@ library(ggplot2)
 
 # set tuning parameters
 rfGrid <- expand.grid(
-  mtry=8,
+  mtry=c(5),
   splitrule=c("gini"),
-  min.node.size= 5
+  min.node.size= c(8)
 )
 
 # set validation mode
@@ -40,13 +40,7 @@ rf <- train(
   importance="impurity",
   metric="ROC"
 )
-
+plot(rf)
 # plot variable importance
 ggplot(varImp(rf, scale = FALSE), main = "randomForest") +
   ggtitle("Ranger")
-
-# predict
-pred.y <- predict(rf, newdata=test.x.bin, type="prob")[, 2]
-test.y <- data.frame(StudentID=1:length(pred.y),
-                     FlagAIB=pred.y)
-write.csv(test.y, file="~/y_test.csv", row.names=FALSE)

@@ -91,48 +91,48 @@ write.csv(test.y, file="~/y_test_2.csv", row.names=FALSE)
 
 # DART (Dropout Additive Regression Trees)
 # inherits gbtree and has additional parameters
-paramGrid <- expand.grid(
-  eta=c(0.02),
-  max_depth=c(6),
-  subsample=0.55,
-  colsample_bytree=0.7, # randomForest
-  rate_drop=c(0.85),
-  skip_drop=c(0.2)
-)
-best_param <- list()
-best_auc <- 0
-best_round <- 0
-for (i in 1:nrow(paramGrid)){
-  current_param <- as.list(paramGrid[i,])
-  history <- xgb.cv(
-    data=as.matrix(train.x.bin),
-    label=as.matrix(train.y$FlagAIB),
-    params=current_param,
-    nround=800,
-    verbose=0,
-    nfold=5,
-    # ---XGBoost documentation---
-    # validation error needs to decrease at least every
-    # early_stopping_rounds to continue training
-    early_stopping_rounds=50,
-    eval_metric="auc",
-    objective="binary:logistic",
-    booster="gbtree",
-    sample_type=c("uniform"),
-    normalize_type=c("forest")
-  )
-  current_round <- history$best_iteration
-  current_auc <- history$evaluation_log$test_auc_mean[current_round]
-  if(current_auc > best_auc){
-    best_param <- current_param
-    best_auc <- current_auc
-    best_round <- current_round
-  }
-  # make verbose
-  print(paste("Round ", i, " completed", sep=""))
-}
-
-# tuned DART performs *slightly* better
+# paramGrid <- expand.grid(
+#   eta=c(0.02),
+#   max_depth=c(6),
+#   subsample=0.55,
+#   colsample_bytree=0.7, # randomForest
+#   rate_drop=c(0.85),
+#   skip_drop=c(0.2)
+# )
+# best_param <- list()
+# best_auc <- 0
+# best_round <- 0
+# for (i in 1:nrow(paramGrid)){
+#   current_param <- as.list(paramGrid[i,])
+#   history <- xgb.cv(
+#     data=as.matrix(train.x.bin),
+#     label=as.matrix(train.y$FlagAIB),
+#     params=current_param,
+#     nround=800,
+#     verbose=0,
+#     nfold=5,
+#     # ---XGBoost documentation---
+#     # validation error needs to decrease at least every
+#     # early_stopping_rounds to continue training
+#     early_stopping_rounds=50,
+#     eval_metric="auc",
+#     objective="binary:logistic",
+#     booster="gbtree",
+#     sample_type=c("uniform"),
+#     normalize_type=c("forest")
+#   )
+#   current_round <- history$best_iteration
+#   current_auc <- history$evaluation_log$test_auc_mean[current_round]
+#   if(current_auc > best_auc){
+#     best_param <- current_param
+#     best_auc <- current_auc
+#     best_round <- current_round
+#   }
+#   # make verbose
+#   print(paste("Round ", i, " completed", sep=""))
+# }
+# 
+# # tuned DART performs *slightly* better
 
 # for usage of caret
 xgbGrid <- expand.grid(
