@@ -31,14 +31,22 @@ modelList <- list(
     method="xgbTree",
     tuneGrid=xgbGrid
   ),
-  glm <- caretModelSpec(
-    method="glmnet",
-    tuneGrid=glmGrid
+  # glm <- caretModelSpec(
+  #   method="glmnet",
+  #   tuneGrid=glmGrid
+  # ),
+  gbm <- caretModelSpec(
+    method="gbm",
+    tuneGrid=gbmGrid
   ),
-  fda <- caretModelSpec(
-    method="fda",
-    tuneGrid=fdaGrid
+  mars <- caretModelSpec(
+    method="gcvEarth",
+    tuneGrid=marsGrid
   )
+  # fda <- caretModelSpec(
+  #   method="fda",
+  #   tuneGrid=fdaGrid
+  # )
 )
 
 # caret requires factors with valid names
