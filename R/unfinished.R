@@ -25,30 +25,18 @@ train.x$NumDevice <- as.numeric(train.x$NumDevice)
 train.x$EdMother <- as.ordered(train.x$EdMother)
 train.x$EdFather <- as.ordered(train.x$EdFather)
 train.y$FlagAIB <- as.factor(train.y$FlagAIB)
+
+test.x$Gender <- as.factor(test.x$Gender)
+test.x$Region <- as.factor(test.x$Region)
+test.x$NumBook <- as.numeric(test.x$NumBook)
+test.x$NumDevice <- as.numeric(test.x$NumDevice)
+test.x$EdMother <- as.ordered(test.x$EdMother)
+test.x$EdFather <- as.ordered(test.x$EdFather)
+
 # complete train data
-train.x <- train.x %>% mutate(Continent=ifelse(Region %in% c("HKG", "JPN", "SGP", "TWN"), 
-                                               "ASIA", "NASIA")) %>% as.data.frame()
-
+train.x <- train.x %>% mutate(Continent=ifelse(Region %in% c("HKG", "JPN", "SGP", "TWN"), "ASIA", "NASIA")) %>% as.data.frame()
+test.x <- test.x %>% mutate(Continent=ifelse(Region %in% c("HKG", "JPN", "SGP", "TWN"), "ASIA", "NASIA")) %>% as.data.frame()
 train <- cbind(train.y, train.x)
-
-rcp2 <- recipe(~., data=train) %>%
-  step_ordinalscore(EdMother, EdFather) %>%
-  step_interact(terms = ~ EdMother:EdFather+
-                  Teacher_1:all_numeric()+
-                  NumBook:all_numeric(), sep = "x" ) %>%
-  step_classdist(all_numeric(), class = "train.y$FlagAIB", role = "predictor" ) %>%
-  #step_ns(all_cnumeric(), df=3) %>%
-  #step_center(all_numeric()) %>%
-  #step_scale(all_numeric()) %>%
-  #step_pca(all_numeric(), threshold=0.9) %>%
-  step_dummy(Gender, Region, Continent) %>%
-  step_interact(terms=~contains("Gender"):contains("Continent")) %>%
-  prep(training=train.x)
-
-train.x.d.bin <- bake(rcp2, newdata=train.x) %>% as.data.frame()
-train.x.d.bin = train.d.bin
-train.x.d.bin$FlagAIB = NULL
-
 
 library(dplyr)
 train.x0 = train %>% filter(FlagAIB=='0')%>% 
@@ -65,14 +53,39 @@ n2 = nrow(train.x1)
 s = ((n1 -1)*s1 +(n2 - 1)*s2)/(n1 + n2 - 2)
 train.n = train.x %>% select(which(sapply(., is.numeric)))
 
-d = data.frame(d1 = mahalanobis(train.n, u1, s),
-               d2 = mahalanobis(train.n, u2, s))
-train.x$Dist = apply(d, 1, which.max)
+
 classDistance = function(x){
-  d1 = 
-  d2 = 
-  
+  xn = x %>% select(which(sapply(., is.numeric)))
+  d = data.frame( d1 = mahalanobis(xn, u1, s),
+                  d2 = mahalanobis(xn, u2, s))
+  x_modify = x
+  x_modify$Dist = as.factor(apply(d, 1, which.max))
+  return(x_modify)
 }
 
-test.x$Dist = 
+train.x = classDistance(train.x)
+test.x = classDistance(test.x)
+
+
+
+
+rcp <- recipe(~., data=train.x) %>%
+  step_ordinalscore(EdMother, EdFather) %>%
+  step_interact(terms = ~ EdMother:EdFather+
+                  Teacher_1:all_numeric()+
+                  NumBook:all_numeric(), sep = "x" ) %>%
+  step_bs(all_numeric())%>%
+  #step_ns(all_numeric(), df=3) %>%
+  #step_center(all_numeric()) %>%
+  #step_scale(all_numeric()) %>%
+  #step_pca(all_numeric(), threshold=0.9) %>%
+  step_dummy(Gender, Region, Continent, Dist) %>%
+  step_interact(terms=~contains("Gender"):contains("Continent")) %>%
+  prep(training=train.x)
+
+train.x.bin <- bake(rcp, newdata=train.x) %>% as.data.frame()
+train.bin = cbind(FlagAIB = train.y$FlagAIB, train.x.bin)
+
+test.x.bin <- bake(rcp, newdata = test.x) %>% as.data.frame()
+
 
