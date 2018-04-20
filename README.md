@@ -5,10 +5,10 @@ STAT3612 Data Mining Group Project
 - Folder `Submission` contains files submitted to Moodle for evaluation
 ## Performances
 |Submission|1|2|3|
-|---|---|---|---|
-|AUC|0.8707|0.8731|0.8756|
-|Max AUC|0.8707|0.8731|0.8756|
-|Rank|2|2|4|
+|---|---|---|---|---|
+|AUC|0.8707|0.8731|0.8756|NA|.|
+|Max AUC|0.8707|0.8731|0.8756|8756|.|
+|Rank|2|2|4|4|
 
 
 |Submission|Description|
@@ -16,3 +16,5 @@ STAT3612 Data Mining Group Project
 |1|Ensemble: XGBoost + glmnet + ...|
 |2|xgBoost|
 |3|Ensemble: Random Forest + glmnet + XGBoost|
+|4|OverDue|
+|5|ensemble with natural spline|
