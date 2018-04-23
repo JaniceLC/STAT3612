@@ -16,10 +16,10 @@ library(ggplot2)
 # parameter tuning
 # package Caret also provides a systematic framework for tuning
 paramGrid <- expand.grid(
-  eta=0.01,
-  max_depth=5,
-  subsample=0.5,
-  colsample_bytree=0.6 # randomForest
+  eta=c(0.01, 0.03, 0.05),
+  max_depth=c(5, 6, 7),
+  subsample=c(0.5, 0.7, 0.6),
+  colsample_bytree=c(0.5, 0.6, 0.7) # randomForest
 )
 best_param <- list()
 best_auc <- 0
@@ -53,7 +53,7 @@ for (i in 1:nrow(paramGrid)){
 }
 xgb <- xgboost(
   data=as.matrix(train.x.bin),
-  label=as.matrix(train.y$FlagAIB), 
+  label=as.numeric(train.y$FlagAIB)-1, 
   params=best_param,
   nround=best_round,
   verbose=0,
@@ -70,6 +70,18 @@ xgb.plot.importance(imp.matrix, main ="xgBoost Importance")
 #best_auc1 =0.8800068, best_param1 eta = 0.01, max_depth= 6, subsample= 0.6, colsample_bytree=0.6
 #best_auc2 = 0.8807268, best_param1 eta = 0.015, max_depth= 6, subsample= 0.5, colsample_bytree=0.7
 #best_auc2 = 0.8804996, best_param1 eta = 0.015, max_depth= 6, subsample= 0.6, colsample_bytree=0.7
+# $eta
+# [1] 0.01
+# 
+# $max_depth
+# [1] 6
+# 
+# $subsample
+# [1] 0.7
+# 
+# $colsample_bytree
+# [1] 0.5
+# 0.8801882
 
 # ---last used tuned parameters---
 # param <- list(
@@ -79,10 +91,7 @@ xgb.plot.importance(imp.matrix, main ="xgBoost Importance")
 #   colsample_bytree=0.7
 # )
 
-# plot variable importance
-imp.matrix <- xgb.importance(feature_names=colnames(train.x.bin), model=xgb)
-xgb.ggplot.importance(imp.matrix)
-xgb.plot.importance(imp.matrix)
+
 
 # predict
 pred.y <- predict(xgb, newdata=as.matrix(test.x.bin))
@@ -133,6 +142,9 @@ write.csv(test.y, file="~/y_test_2.csv", row.names=FALSE)
 # }
 # 
 # # tuned DART performs *slightly* better
+
+# caret requires factors with valid names
+levels(train.y$FlagAIB) <- c("B", "A")
 
 # for usage of caret
 xgbGrid <- expand.grid(
