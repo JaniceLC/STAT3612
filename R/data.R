@@ -95,7 +95,7 @@ rcp <- recipe(~., data=train.x) %>%
                   contains("Region"):starts_with("Ed") + 
                   contains("Region"):starts_with("ExMotif")+
                   contains("Region"):starts_with("InMotif")
-                 # contains("Region"):contains("Gender")
+                 #contains("Region"):contains("Gender")
                 ) %>%
   prep(training=train.x)
 

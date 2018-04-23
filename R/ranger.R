@@ -14,10 +14,12 @@ library(ggplot2)
 
 # set tuning parameters
 rfGrid <- expand.grid(
-  mtry=c(5),
+  mtry=c( 8, 9, 10, 11),
   splitrule=c("gini"),
-  min.node.size= c(8)
+  min.node.size= c(7, 9, 10, 11, 12)
 )
+
+# 11      gini            11 0.8722210
 
 # set validation mode
 fitControl <- trainControl(
