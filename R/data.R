@@ -84,10 +84,6 @@ rcp <- recipe(~., data=train.x) %>%
   step_ordinalscore(EdMother, EdFather) %>%
   step_interact(terms = ~ EdMother:EdFather+
                   Teacher_1:all_numeric()+
-                  Region:starts_with("Ed") + 
-                  Region:starts_with("ExMotif")+
-                  Region:starts_with("InMotif")+
-                  Region:Gender+
                   NumBook:all_numeric(), sep = "x" ) %>%
   #step_bs(all_numeric())%>%
   step_ns(all_numeric(), df=3) %>%
@@ -95,7 +91,12 @@ rcp <- recipe(~., data=train.x) %>%
   #step_scale(all_numeric()) %>%
   #step_pca(all_numeric(), threshold=0.9) %>%
   step_dummy(Gender, Region, Continent, Dist) %>%
-  step_interact(terms=~contains("Gender"):contains("Continent")) %>%
+  step_interact(terms=~contains("Gender"):contains("Continent") + 
+                  contains("Region"):starts_with("Ed") + 
+                  contains("Region"):starts_with("ExMotif")+
+                  contains("Region"):starts_with("InMotif")
+                 # contains("Region"):contains("Gender")
+                ) %>%
   prep(training=train.x)
 
 train.x.bin <- bake(rcp, newdata=train.x) %>% as.data.frame()
