@@ -32,6 +32,17 @@ test.x$NumBook <- as.numeric(test.x$NumBook)
 test.x$NumDevice <- as.numeric(test.x$NumDevice)
 test.x$EdMother <- as.ordered(test.x$EdMother)
 test.x$EdFather <- as.ordered(test.x$EdFather)
+meanEdMo = round(mean(as.numeric(train.x$EdMother)))
+meanEdFa = round(mean(as.numeric(train.x$EdFather)))
+for( i in 1 : nrow(train.x) ){
+  train.x$EdMother[i] = ifelse(train.x$EdMother[i] == 8, meanEdMo, train.x$EdMother[i])
+  train.x$EdFather[i] = ifelse(train.x$EdFather[i] == 8, meanEdFa, train.x$EdFather[i])
+}
+
+for( i in 1 : nrow(test.x) ){
+  test.x$EdMother[i] = ifelse(test.x$EdMother[i] == 8, meanEdMo, test.x$EdMother[i])
+  test.x$EdFather[i] = ifelse(test.x$EdFather[i] == 8, meanEdFa, test.x$EdFather[i])
+}
 
 # complete train data
 train.x <- train.x %>% mutate(Continent=ifelse(Region %in% c("HKG", "JPN", "SGP", "TWN"), "ASIA", "NASIA")) %>% as.data.frame()
@@ -73,9 +84,13 @@ rcp <- recipe(~., data=train.x) %>%
   step_ordinalscore(EdMother, EdFather) %>%
   step_interact(terms = ~ EdMother:EdFather+
                   Teacher_1:all_numeric()+
+                  Region:starts_with("Ed") + 
+                  Region:starts_with("ExMotif")+
+                  Region:starts_with("InMotif")+
+                  Region:Gender+
                   NumBook:all_numeric(), sep = "x" ) %>%
-  step_bs(all_numeric())%>%
-  #step_ns(all_numeric(), df=3) %>%
+  #step_bs(all_numeric())%>%
+  step_ns(all_numeric(), df=3) %>%
   #step_center(all_numeric()) %>%
   #step_scale(all_numeric()) %>%
   #step_pca(all_numeric(), threshold=0.9) %>%
