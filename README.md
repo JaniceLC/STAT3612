@@ -8,7 +8,7 @@ STAT3612 Data Mining Group Project
 |---|---|---|---|---|---|---|---|
 |AUC|0.8707|0.8731|0.8756|NA|0.8754|NA|.|
 |Max AUC|0.8707|0.8731|0.8756|0.8756|0.8756|.|
-|Rank|2|2|4|4|5|5|.|
+|Rank|2|2|4|4|5|5|5||
 
 
 |Submission|Description|
@@ -18,3 +18,5 @@ STAT3612 Data Mining Group Project
 |3|Ensemble: Random Forest + glmnet + XGBoost|
 |4|OverDue|
 |5|ensemble with natural spline|
+|6|OverDue|
+|7|xgboost with feature engineering|
