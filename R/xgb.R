@@ -5,6 +5,7 @@
 if(!require(xgboost)) install.packages("xgboost")
 if(!require(ggplot2)) install.packages("ggplot2")
 
+library(caret)
 library(xgboost)
 library(Matrix)
 library(ggplot2)
@@ -16,10 +17,10 @@ library(ggplot2)
 # parameter tuning
 # package Caret also provides a systematic framework for tuning
 paramGrid <- expand.grid(
-  eta=c(0.01, 0.03, 0.05),
-  max_depth=c(5, 6, 7),
-  subsample=c(0.5, 0.7, 0.6),
-  colsample_bytree=c(0.5, 0.6, 0.7) # randomForest
+  eta=c(0.009),
+  max_depth=c(4),
+  subsample=c(0.6),
+  colsample_bytree=c(0.6) # randomForest
 )
 best_param <- list()
 best_auc <- 0
@@ -96,7 +97,7 @@ xgb.plot.importance(imp.matrix, main ="xgBoost Importance")
 # predict
 pred.y <- predict(xgb, newdata=as.matrix(test.x.bin))
 test.y <- data.frame(StudentID=1:length(pred.y), FlagAIB=pred.y)
-write.csv(test.y, file="~/y_test_2.csv", row.names=FALSE)
+write.csv(test.y, file="C:/Users/User/Desktop/y_test_2.csv", row.names=FALSE)
 
 # DART (Dropout Additive Regression Trees)
 # inherits gbtree and has additional parameters
@@ -148,13 +149,13 @@ levels(train.y$FlagAIB) <- c("B", "A")
 
 # for usage of caret
 xgbGrid <- expand.grid(
-  eta=0.01,
+  eta=c(0.005),
   max_depth=5,
   subsample=0.5,
   colsample_bytree=0.6, # randomForest
   gamma=0,
   min_child_weight=1,
-  nrounds=1000
+  nrounds=1425
 )
 fitControl <- trainControl(
   method="cv",
@@ -168,6 +169,7 @@ xgb <- train(
   y=train.y$FlagAIB,  
   method="xgbTree",
   trControl=fitControl,
+  #tuneLength = 4,
   tuneGrid=xgbGrid,
   metric="ROC"
 )
