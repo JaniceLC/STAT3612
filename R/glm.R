@@ -18,10 +18,10 @@ fitControl <- trainControl(
 )
 
 glmGrid <- expand.grid(
-  alpha=c(1),
+  alpha=c( 0.65),
   lambda=c(0)
 )
-
+###maxROC = 0.8703885
 levels(train.y$FlagAIB) <- c("B", "A")
 
 glm <- train(
