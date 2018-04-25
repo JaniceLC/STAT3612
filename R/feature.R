@@ -34,37 +34,29 @@ recast.type <- function(df){
 # merging regions
 add.didactic <- function(df){
   df <- df %>% 
-        mutate(Didactic=ifelse(Region %in% c("HKG", "JPN", "TWN"), "ASIA", 
-                        ifelse(Region %in% c("USA", "ENG"), "NASIA", "SGP"))) %>% 
-        as.data.frame()
+    mutate(Didactic=ifelse(Region %in% c("HKG", "JPN", "TWN"), "ASIA", 
+                           ifelse(Region %in% c("USA", "ENG"), "NASIA", "SGP"))) %>% 
+    as.data.frame()
   df$Didactic <- as.factor(df$Didactic)
   return(df)
 }
 # set up recipe
-rcp <- recipe(~.-Region, data=train.x) %>%
-  #step_ordinalscore(EdMother, EdFather) %>%
-  step_meanimpute(EdMother, EdFather) %>%
-  step_interact(terms = ~EdMother:EdFather+
-                  Teacher_1:all_numeric()+
-                  NumBook:all_numeric(),sep ="x") %>%
-  #step_bs(all_numeric())%>%
-  step_ns(all_numeric(), df=3) %>%
-  #step_center(all_numeric()) %>%
-  #step_scale(all_numeric()) %>%
-  #step_pca(all_numeric(), threshold=0.9) %>%
-  step_dummy(Gender, Didactic) %>%
-  step_interact(terms=~contains("Didactic"):starts_with("Ed")+ 
-                  contains("Didactic"):starts_with("ExMotif")+
-                  contains("Didactic"):starts_with("InMotif")+
-                  contains("Didactic"):contains("Gender")) %>%
-  #step_ns(all_numeric(), df=3) %>%
-  prep(training=train.x)
-
 make.data <- function(df){
   df <- df %>% 
-        recast.type() %>% 
-        add.didactic()
+    recast.type() %>% 
+    add.didactic()
+  rcp <- recipe(~.-Region, data=df) %>%
+    step_meanimpute(EdMother, EdFather) %>%
+    step_interact(terms = ~EdMother:EdFather, sep ="x") %>%
+    step_dummy(Gender, one_hot=TRUE) %>%
+    step_dummy(Didactic, one_hot=TRUE) %>%
+    step_interact(terms=~contains("Didactic"):starts_with("Ed")+ 
+                    contains("Didactic"):starts_with("ExMotif")+
+                    contains("Didactic"):starts_with("InMotif")+
+                    contains("Didactic"):contains("Gender")) %>%
+    prep(training=df)
   df <- bake(rcp, newdata=df)
+  df$Region <- NULL
   return(df)
 }
 
@@ -73,4 +65,3 @@ make.data <- function(df){
 
 train.x.bin <- make.data(train.x)
 test.x.bin <- make.data(test.x)
-train.y$FlagAIB <- as.factor(train.y$FlagAIB)
