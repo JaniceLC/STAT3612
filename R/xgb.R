@@ -4,21 +4,33 @@
 
 if(!require(xgboost)) install.packages("xgboost")
 if(!require(ggplot2)) install.packages("ggplot2")
-
+if(!require(ROCR)) install.packages("ROCR")
 library(caret)
 library(xgboost)
 library(Matrix)
 library(ggplot2)
-
+library(ROCR)
 # construct DMatrix for XGBoost (optional)
 # dtrain <- xgb.DMatrix(data=sparse.model.matrix(~.-1, data=train.x.bin),
 #                       label=as.numeric(train.y$FlagAIB)-1)
 
 # parameter tuning
 # package Caret also provides a systematic framework for tuning
+
+#AUC FOR VALIDATION SET. 
+test.AUC = function(model){
+  pred.y = predict(model, newdata = as.matrix(val.x))
+  pred = prediction(pred.y, val.y)
+  pred_AUC = performance(pred, "auc")
+  AUC.model = pred_AUC@y.values[[1]]
+  return(AUC.model)
+}
+
+
+
 paramGrid <- expand.grid(
-  eta=c(0.009),
-  max_depth=c(4),
+  eta=c( 0.005),
+  max_depth=c( 6),
   subsample=c(0.6),
   colsample_bytree=c(0.6) # randomForest
 )
@@ -28,8 +40,8 @@ best_round <- 0
 for (i in 1:nrow(paramGrid)){
   current_param <- as.list(paramGrid[i,])
   history <- xgb.cv(
-    data=as.matrix(train.x.bin),
-    label=as.numeric(train.y$FlagAIB)-1,
+    data=as.matrix(train.x),
+    label=train.y,
     params=current_param,
     nround=2000,
     verbose=0,
@@ -42,6 +54,8 @@ for (i in 1:nrow(paramGrid)){
     objective="binary:logistic",
     booster="gbtree"
   )
+  
+  
   current_round <- history$best_iteration
   current_auc <- history$evaluation_log$test_auc_mean[current_round]
   if(current_auc > best_auc){
@@ -53,8 +67,8 @@ for (i in 1:nrow(paramGrid)){
   print(paste("Round ", i, " completed", sep=""))
 }
 xgb <- xgboost(
-  data=as.matrix(train.x.bin),
-  label=as.numeric(train.y$FlagAIB)-1, 
+  data=as.matrix(train.x),
+  label=train.y, 
   params=best_param,
   nround=best_round,
   verbose=0,
@@ -63,7 +77,7 @@ xgb <- xgboost(
   objective="binary:logistic",
   booster="gbtree"
 )
-
+test.AUC(xgb)
 imp.matrix <- xgb.importance(feature_names=colnames(train.x.bin), model=xgb)
 # xgb.ggplot.importance(imp.matrix)
 xgb.plot.importance(imp.matrix, main ="xgBoost Importance")

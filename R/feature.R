@@ -32,8 +32,8 @@ recast.type <- function(df){
   df$NumDevice <- as.numeric(df$NumDevice)
   df$EdMother <- as.numeric(df$EdMother)
   df$EdFather <- as.numeric(df$EdFather)
-  df$EdMother[df$EdMother==8] <- NA
-  df$EdFather[df$EdFather==8] <- NA
+  df$EdMother[df$EdMother==8] <- 3
+  df$EdFather[df$EdFather==8] <- 3
   return(df)
 }
 # merging regions
@@ -78,18 +78,21 @@ impute.ed <- function(df, imputed){
   df$EdFather[asia.father.index] <- imputed[4]
   df$EdFather[nasia.father.index] <- imputed[5]
   df$EdFather[sgp.father.index] <- imputed[6]
+  return(df)
 }
 
 # set up recipe
 make.data <- function(df, imputed){
   df <- df %>% 
     recast.type() %>% 
-    add.didactic() %>% 
-    impute.ed(imputed)
+    add.didactic() 
+   # impute.ed(imputed)
+  
   rcp <- recipe(~.-Region, data=df) %>%
     step_center(all_numeric()) %>%
     step_scale(all_numeric()) %>%
-    step_interact(terms = ~EdMother:EdFather, sep ="x") %>%
+    step_ns(all_numeric(), df = 3) %>%
+    step_interact(terms = ~contains("EdMother"):contains("EdFather"), sep ="x") %>%
     step_dummy(Gender) %>%
     step_dummy(Didactic) %>%
     step_interact(terms=~contains("Didactic"):starts_with("Ed")+ 
@@ -105,7 +108,29 @@ make.data <- function(df, imputed){
 #####################################
 #####################################
 
-imputed <- train.x %>% recast.type() %>% add.didactic() %>% impute.value()
+#imputed <- train.x %>% recast.type() %>% add.didactic() %>% impute.value()
 train.x <- make.data(train.x, imputed)
+
+train = cbind(FlagAIB = train.y, train.x)
 val.x <- make.data(val.x, imputed)
 test.x <- make.data(test.x, imputed)
+
+
+
+#########Remove Outlier from train.x 
+# quantify through logistic regression
+library(glmnet)
+model <- glm(FlagAIB~., data=train, family="binomial")
+plot(model)
+if(!require(car)) install.packages("car")
+library(car)
+cd <- cooks.distance(model, infl=influence(model, do.coef=TRUE))
+cutoff=quantile(cd, prob=0.995)
+cd <- cooks.distance(model)
+plot(cd, pch=19, cex=0.5)
+abline(h=cutoff, col="red", lwd=2)
+train.x <- train.x[which(cd<cutoff),]
+dim(train.x)
+train = train[which(cd<cutoff),]
+train.y = train$FlagAIB
+
