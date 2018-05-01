@@ -103,9 +103,9 @@ make.data <- function(df){
     add.didactic() %>%
     add.income() %>%
     add.schooling() %>%
-    select(-Region-EdMother-EdFather-InMother-InFather)
+    select(-one_of(c("Region", "EdMother", "EdFather", "InMother", "InFather")))
   
-  df <- recipe(~.-Region, data=df) %>%
+  df <- recipe(~., data=df) %>%
     step_center(all_numeric()) %>%
     step_scale(all_numeric()) %>%
     step_dummy(Gender) %>%
