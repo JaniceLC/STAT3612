@@ -4,9 +4,11 @@
 
 if(!require(dplyr)) install.packages("dplyr")
 if(!require(recipes)) install.packages("recipes")
+if(!require(car)) install.packages("car")
 
 library(dplyr)
 library(recipes)
+library(car)
 
 #################################################
 #################################################
@@ -91,7 +93,7 @@ make.data <- function(df, imputed){
   rcp <- recipe(~.-Region, data=df) %>%
     step_center(all_numeric()) %>%
     step_scale(all_numeric()) %>%
-    step_ns(all_numeric(), df = 3) %>%
+    # step_ns(all_numeric(), df = 3) %>%
     step_interact(terms = ~contains("EdMother"):contains("EdFather"), sep ="x") %>%
     step_dummy(Gender) %>%
     step_dummy(Didactic) %>%
@@ -119,18 +121,13 @@ test.x <- make.data(test.x, imputed)
 
 #########Remove Outlier from train.x 
 # quantify through logistic regression
-library(glmnet)
 model <- glm(FlagAIB~., data=train, family="binomial")
-plot(model)
-if(!require(car)) install.packages("car")
-library(car)
-cd <- cooks.distance(model, infl=influence(model, do.coef=TRUE))
-cutoff=quantile(cd, prob=0.995)
-cd <- cooks.distance(model)
-plot(cd, pch=19, cex=0.5)
+# cooks.dist <- cooks.distance(model, infl=influence(model, do.coef=TRUE))
+cooks.dist <- cooks.distance(model)
+cutoff=quantile(cooks.dist, prob=0.995)
+plot(cooks.dist, pch=19, cex=0.5)
 abline(h=cutoff, col="red", lwd=2)
-train.x <- train.x[which(cd<cutoff),]
-dim(train.x)
-train = train[which(cd<cutoff),]
-train.y = train$FlagAIB
+train = train[which(cooks.dist<cutoff),]
+train.x <- train[,-1]
+train.y <- train[,1]
 
