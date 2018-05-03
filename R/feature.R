@@ -101,20 +101,23 @@ make.data <- function(df){
   df <- df %>% 
     recast.type() %>% 
     add.didactic() %>%
-    add.income() %>%
-    add.schooling() %>%
-    select(-one_of(c("Region", "EdMother", "EdFather", "InMother", "InFather")))
-  
+    add.schooling() 
+  #  select(-one_of(c("Region", "EdMother", "EdFather", "InMother", "InFather")))
+  df$Region = NULL
+  df$EdMother= NULL
+  df$EdFather = NULL
+  df$InMother = NULL
+  df$InFather = NULL 
   df <- recipe(~., data=df) %>%
     step_center(all_numeric()) %>%
     step_scale(all_numeric()) %>%
+    #step_ns(all_numeric(), df = 3) %>%
     step_dummy(Gender) %>%
     step_dummy(Didactic) %>%
-    step_interact(terms=~contains("Didactic"):starts_with("Sc")+ 
+    step_interact(terms=~contains("Didactic"):starts_with("Sc")+
                     contains("Didactic"):starts_with("ExMotif")+
                     contains("Didactic"):starts_with("InMotif")+
-                    contains("Didactic"):contains("Gender")+
-                    contains("Didactic"):contains("Income")) %>%
+                    contains("Didactic"):contains("Gender")  ) %>%
     prep(training=df) %>%
     bake(newdata=df)
   return(df)
@@ -124,22 +127,72 @@ make.data <- function(df){
 #####################################
 
 # data treatment
-train.x <- make.data(train.x)
-train = cbind(FlagAIB = train.y, train.x)
-val.x <- make.data(val.x)
+train.x.bin <- make.data(train.x)
+train.bin = cbind(FlagAIB = train.y, train.x.bin)
+val.x.bin <- make.data(val.x)
+val.x.ns <- make.data.ns(val.x)
 test.x <- make.data(test.x)
 
 
 
 # remove outliers from train.x
 # quantify through logistic regression
-model <- glm(FlagAIB~., data=train, family="binomial")
+model <- glm(FlagAIB~., data=train.bin, family="binomial")
+
 cooks.dist <- cooks.distance(model)
 cutoff=quantile(cooks.dist, prob=0.99)
-train = train[which(cooks.dist<cutoff),]
-train.x <- train[,-1]
-train.y <- train[,1]
-
 # plot cooks distance and cutoff
 plot(cooks.dist, pch=19, cex=0.5)
 abline(h=cutoff, col="red", lwd=2)
+
+train.bin = train.bin[which(cooks.dist<cutoff),]
+train.x.bin <- train.bin[,-1]
+train.y.bin <- train.bin[,1]
+
+
+
+
+make.data.ns <- function(df){
+  df <- df %>% 
+    recast.type() %>% 
+    add.didactic() %>%
+    add.schooling() 
+   # select(-one_of(c("Region", "EdMother", "EdFather", "InMother", "InFather")))
+  df$Region = NULL
+  df$EdMother= NULL
+  df$EdFather = NULL
+  df$InMother = NULL
+  df$InFather = NULL 
+  df <- recipe(~., data=df) %>%
+    step_center(all_numeric()) %>%
+    step_scale(all_numeric()) %>%
+    step_ns(all_numeric(), df = 3) %>%
+    step_dummy(Gender) %>%
+    step_dummy(Didactic) %>%
+    step_interact(terms=~contains("Didactic"):starts_with("Sc")+ 
+                    contains("Didactic"):starts_with("ExMotif")+
+                    contains("Didactic"):starts_with("InMotif")+
+                    contains("Didactic"):contains("Gender")) %>%
+    prep(training=df) %>%
+    bake(newdata=df)
+  return(df)
+}
+
+train.x.ns <- make.data.ns(train.x)
+train.ns = cbind(FlagAIB = train.y, train.x.ns)
+val.x.ns = make.data.ns(val.x)
+#no evident outlier found. 
+model.ns <- glm(FlagAIB~., data=train.ns, family="binomial")
+cooks.dist.ns <- cooks.distance(model.ns)
+cutoff=quantile(cooks.dist.ns, prob=0.995)
+
+# plot cooks distance and cutoff
+plot(cooks.dist.ns, pch=19, cex=0.5)
+abline(h=cutoff, col="red", lwd=2)
+
+train.ns= train.ns[which(cooks.dist<cutoff),]
+train.x.ns <- train.ns[,-1]
+train.y.ns <- train.ns[,1]
+
+
+
